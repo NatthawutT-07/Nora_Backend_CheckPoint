@@ -1,7 +1,8 @@
 /**
  * Input Validators
- * ตรวจสอบความถูกต้องของข้อมูล
+ * ตรวจสอบความถูกต้องของข้อมูล — ใช้ Template Config แทน boolean flags
  */
+const { getRequiredFields, templateRequiresField } = require('../config/templateConfig');
 
 /**
  * Validate email format
@@ -36,40 +37,44 @@ const isValidPin = (pin) => {
 };
 
 /**
- * Validate order creation data
+ * Validate order creation data — uses template registry for field requirements
  * @param {object} data 
  * @returns {object} { valid: boolean, errors: string[] }
  */
 const validateOrderData = (data) => {
     const errors = [];
 
-    // Required fields
+    // Required fields (common to all orders)
     if (!data.tierId) errors.push('กรุณาเลือกแพ็คเกจ');
     if (!data.buyerName?.trim()) errors.push('กรุณากรอกชื่อผู้สั่งซื้อ');
     if (!isValidEmail(data.buyerEmail)) errors.push('กรุณากรอก Email ที่ถูกต้อง');
     if (!isValidPhone(data.buyerPhone)) errors.push('กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง');
     if (!data.selectedTemplate) errors.push('กรุณาเลือกธีม');
 
-    // Tier-specific validation
-    const tierId = parseInt(data.tierId);
-    
-    // Tier 1 & 2 require PIN and details
-    if (tierId === 1 || tierId === 2) {
-        if (data.needsDetailFields) {
-            if (!isValidPin(data.pin)) errors.push('กรุณาใส่ PIN 4 หลัก');
-            if (!data.targetName?.trim()) errors.push('กรุณากรอกชื่อคนรับ');
-            if (!data.message?.trim()) errors.push('กรุณากรอกข้อความ');
-            if (data.message && data.message.length > 100) {
-                errors.push('ข้อความต้องไม่เกิน 100 ตัวอักษร');
-            }
+    // Template-specific validation — driven by template config, no if/else chains
+    const templateId = data.selectedTemplate;
+    const requiredFields = getRequiredFields(templateId);
+
+    if (requiredFields.includes('pin')) {
+        if (!isValidPin(data.pin)) errors.push('กรุณาใส่ PIN 4 หลัก');
+    }
+    if (requiredFields.includes('targetName')) {
+        if (!data.targetName?.trim()) errors.push('กรุณากรอกชื่อคนรับ');
+    }
+    if (requiredFields.includes('message')) {
+        if (!data.message?.trim()) errors.push('กรุณากรอกข้อความ');
+        if (data.message && data.message.length > 100) {
+            errors.push('ข้อความต้องไม่เกิน 100 ตัวอักษร');
         }
     }
-
-    // Tier 3 requires timeline fields
-    if (tierId === 3 && data.needsTimelineFields) {
-        if (!data.finaleMessage?.trim()) {
-            errors.push('กรุณากรอกข้อความสุดท้าย');
-        }
+    if (requiredFields.includes('shortMessage')) {
+        if (!data.shortMessage?.trim()) errors.push('กรุณากรอกข้อความแรกที่ทักทาย');
+    }
+    if (requiredFields.includes('customMessage')) {
+        if (!data.customMessage?.trim()) errors.push('กรุณากรอกข้อความบอกรักส่วนที่ 2');
+    }
+    if (requiredFields.includes('finaleMessage')) {
+        if (!data.finaleMessage?.trim()) errors.push('กรุณากรอกข้อความสุดท้าย');
     }
 
     // Custom link validation

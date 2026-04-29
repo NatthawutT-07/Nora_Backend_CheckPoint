@@ -12,7 +12,7 @@ async function resetPassword() {
     await admin.auth().updateUser(user.uid, {
       password: 'AdminPassword123!'
     });
-    console.log('✅ Password reset successfully for ' + email);
+    console.log('Password reset successfully for ' + email);
     process.exit(0);
   } catch (error) {
     console.error('Error:', error);

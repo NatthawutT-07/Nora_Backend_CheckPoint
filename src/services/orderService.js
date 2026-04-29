@@ -8,6 +8,20 @@ const { TIER_DURATIONS, ORDER_STATUS, EDIT_CONFIG } = require('../config/constan
 const { generateUniqueStoryId, checkDomainAvailability } = require('../utils/idGenerator');
 const { validateOrderData, sanitizeString } = require('../utils/validators');
 const { notifyNewOrder } = require('./notificationService');
+const { templateRequiresField } = require('../config/templateConfig');
+
+/**
+ * Safely convert Firestore Timestamp to ISO string for JSON serialization.
+ * Date objects become {} when serialized by Cloud Functions callable,
+ * so we must convert to string before returning.
+ */
+const toISO = (ts) => {
+    if (!ts) return null;
+    try {
+        const d = typeof ts.toDate === 'function' ? ts.toDate() : ts;
+        return d instanceof Date ? d.toISOString() : null;
+    } catch { return null; }
+};
 
 /**
  * Create a new order
@@ -38,8 +52,11 @@ const createOrder = async (data) => {
             }
         }
 
-        // Build order document
+        // Build order document — fields saved based on template config
         const tierId = parseInt(data.tierId);
+        const templateId = data.selectedTemplate;
+        const rf = (field) => templateRequiresField(templateId, field);
+
         const orderData = {
             tier_id: tierId,
             tier_name: data.tierName,
@@ -50,16 +67,18 @@ const createOrder = async (data) => {
             buyer_email: data.buyerEmail.trim().toLowerCase(),
             buyer_phone: data.buyerPhone.trim(),
 
-            // Template details
-            pin_code: data.needsDetailFields ? data.pin : null,
-            target_name: data.needsDetailFields ? sanitizeString(data.targetName) : null,
-            sign_off: data.needsDetailFields ? sanitizeString(data.signOff) : null,
-            message: data.needsDetailFields ? sanitizeString(data.message) : null,
+            // Template-specific fields — saved only if the template requires them
+            pin_code: rf('pin') ? data.pin : null,
+            target_name: rf('targetName') ? sanitizeString(data.targetName) : null,
+            sign_off: rf('signOff') ? sanitizeString(data.signOff) : null,
+            message: rf('message') ? sanitizeString(data.message) : null,
+            short_message: rf('shortMessage') ? sanitizeString(data.shortMessage) : null,
+            custom_message: rf('customMessage') ? sanitizeString(data.customMessage) : null,
 
-            // Tier 3 timeline data
-            timelines: data.needsTimelineFields ? data.timelines : null,
-            finale_message: data.needsTimelineFields ? sanitizeString(data.finaleMessage) : null,
-            finale_sign_off: data.needsTimelineFields ? sanitizeString(data.finaleSignOff) : null,
+            // Timeline data (Tier 3)
+            timelines: rf('timelines') ? data.timelines : null,
+            finale_message: rf('finaleMessage') ? sanitizeString(data.finaleMessage) : null,
+            finale_sign_off: rf('finaleSignOff') ? sanitizeString(data.finaleSignOff) : null,
 
             // Link configuration
             custom_domain: (data.wantSpecialLink || data.wantCustomLink) ? data.customDomain : null,
@@ -75,10 +94,8 @@ const createOrder = async (data) => {
             music_url: data.musicUrl || null,
             color_theme_id: data.colorThemeId || null,
 
-            // Payment tracking
-            payment_method: data.payment_method || 'slip',
-            payment_session_id: data.payment_session_id || null,
-            omise_charge_id: data.omise_charge_id || null,
+            // Payment tracking (slip-only, no Omise)
+            payment_method: 'slip',
 
             // Status & metadata
             status: ORDER_STATUS.PENDING,
@@ -182,6 +199,8 @@ const getOrder = async (orderId) => {
                 customer_name: data.buyer_name, // Map for StoryPage.jsx
                 content_images: data.content_images || [],
                 message: data.message,
+                shortMessage: data.short_message,
+                customMessage: data.custom_message,
                 target_name: data.target_name,
                 sign_off: data.sign_off,
                 pin_code: data.pin_code,
@@ -191,9 +210,9 @@ const getOrder = async (orderId) => {
                 finale_message: data.finale_message,
                 finale_sign_off: data.finale_sign_off,
                 status: data.status,
-                created_at: data.created_at?.toDate?.() || null,
-                approved_at: data.approved_at?.toDate?.() || null,
-                expires_at: data.expires_at?.toDate?.() || null,
+                created_at: toISO(data.created_at),
+                approved_at: toISO(data.approved_at),
+                expires_at: toISO(data.expires_at),
                 story_url: data.story_url,
                 custom_domain: data.custom_domain,
                 // Do NOT return buyer_email, buyer_phone, or slip_url here
@@ -229,9 +248,9 @@ const getOrderForExtension = async (orderId) => {
                 tier_id: data.tier_id,
                 tier_name: data.tier_name,
                 status: data.status,
-                created_at: data.created_at?.toDate?.() || null,
-                approved_at: data.approved_at?.toDate?.() || null,
-                expires_at: data.expires_at?.toDate?.() || null,
+                created_at: toISO(data.created_at),
+                approved_at: toISO(data.approved_at),
+                expires_at: toISO(data.expires_at),
                 // Content for preview/edit
                 content_images: data.content_images || [],
                 message: data.message,

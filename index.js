@@ -7,7 +7,6 @@
 
 const orderController = require('./src/controllers/orderController');
 const adminController = require('./src/controllers/adminController');
-const paymentController = require('./src/controllers/paymentController');
 const cleanupController = require('./src/controllers/cleanupController');
 
 // ============================================
@@ -62,14 +61,7 @@ exports.adminGrantAccess = adminController.grantAdminAccess;
 exports.adminRevokeAccess = adminController.revokeAdminAccess;
 
 // ============================================
-// PAYMENT FUNCTIONS (Omise)
+// SCHEDULED TASKS
 // ============================================
 
-exports.createPaymentSession = paymentController.createPaymentSession;
-exports.createCardCharge = paymentController.createCardCharge;
-exports.handleOmiseWebhook = paymentController.handleOmiseWebhook;
-exports.submitOrderWithPayment = paymentController.submitOrderWithPayment;
-exports.submitExtensionWithPayment = paymentController.submitExtensionWithPayment;
-exports.submitEditPaymentWithOmise = paymentController.submitEditPaymentWithOmise;
-exports.cleanupExpiredPaymentSessions = paymentController.cleanupExpiredPaymentSessions;
 exports.scheduledStorageCleanup = cleanupController.scheduledCleanup;

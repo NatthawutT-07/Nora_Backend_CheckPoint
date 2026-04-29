@@ -21,7 +21,7 @@ const makeAdmin = async (email) => {
           password: 'AdminPassword123!', // รหัสผ่านเริ่มต้น
           emailVerified: true
         });
-        console.log(`✅ Created new user! Your temporary password is: AdminPassword123!`);
+        console.log(`Created new user! Your temporary password is: AdminPassword123!`);
       } else {
         throw e;
       }
@@ -29,11 +29,11 @@ const makeAdmin = async (email) => {
 
     // 3. ให้สิทธิ์ Admin
     await admin.auth().setCustomUserClaims(user.uid, { admin: true });
-    console.log(`✅ Success! ${email} is now an admin.`);
+    console.log(`Success! ${email} is now an admin.`);
     console.log('Please log out and log back in on the frontend to apply the new permissions.');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error setting admin privileges:', error);
+    console.error('Error setting admin privileges:', error);
     process.exit(1);
   }
 };
