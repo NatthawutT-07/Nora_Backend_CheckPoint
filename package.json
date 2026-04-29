@@ -1,0 +1,33 @@
+{
+  "name": "nora-story-backend",
+  "version": "1.0.0",
+  "description": "NoraStory Backend - Firebase Cloud Functions",
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "keywords": [
+    "firebase",
+    "cloud-functions",
+    "norastory"
+  ],
+  "author": "NoraStory Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "firebase-admin": "^13.8.0",
+    "firebase-functions": "^7.2.5",
+    "joi": "^18.1.2",
+    "omise": "^1.1.0"
+  }
+}
